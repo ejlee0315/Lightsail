@@ -1,0 +1,50 @@
+# Stage 1 — PhC reflector with a pentagonal-like supercell motif.
+# The underlying Bravais tiling is square; five holes per supercell sit on a
+# regular pentagon, giving the patch local 5-fold symmetry without violating
+# the crystallographic restriction theorem.
+stage: 1
+name: stage1_pentagonal
+material: SiN
+
+thickness_range_nm: [200, 1000]
+nir_band_nm: [1350, 1650]
+mir_band_nm: [8000, 14000]
+
+fabrication:
+  mode: mode_a
+  min_feature_nm: 100
+  min_gap_nm: 100
+  fill_fraction_range: [0.001, 0.999]
+
+geometry:
+  lattice_family: pentagonal_supercell
+  n_rings: 5      # smaller because each supercell already packs 5 holes
+
+primary_objective: nir_reflectance
+
+objectives:
+  nir_reflectance:
+    band_nm: [1350, 1650]
+    n_points: 30
+    mean_weight: 0.7
+    min_weight: 0.3
+    weight: 1.0
+  mir_emissivity:
+    band_nm: [8000, 14000]
+    n_points: 30
+    weight: 1.0
+  fabrication_penalty:
+    weight: 0.3
+
+mobo:
+  n_init: 20           # 5-fold motif has more parameter variance, use more init
+  n_iterations: 20
+  batch_size: 1
+  sampling: sobol
+  acqf_num_restarts: 5
+  acqf_raw_samples: 64
+  acqf_mc_samples: 128
+  device: cpu
+  dtype: double
+  ref_point_margin: 0.1
+  seed: 44

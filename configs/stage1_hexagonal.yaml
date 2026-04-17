@@ -1,0 +1,47 @@
+# Stage 1 — PhC reflector with a honeycomb (hexagonal) lattice.
+stage: 1
+name: stage1_hexagonal
+material: SiN
+
+thickness_range_nm: [200, 1000]
+nir_band_nm: [1350, 1650]
+mir_band_nm: [8000, 14000]
+
+fabrication:
+  mode: mode_a
+  min_feature_nm: 100
+  min_gap_nm: 100
+  fill_fraction_range: [0.001, 0.999]
+
+geometry:
+  lattice_family: hexagonal
+  n_rings: 6
+
+primary_objective: nir_reflectance
+
+objectives:
+  nir_reflectance:
+    band_nm: [1350, 1650]
+    n_points: 30
+    mean_weight: 0.7
+    min_weight: 0.3
+    weight: 1.0
+  mir_emissivity:
+    band_nm: [8000, 14000]
+    n_points: 30
+    weight: 1.0
+  fabrication_penalty:
+    weight: 0.3
+
+mobo:
+  n_init: 16
+  n_iterations: 20
+  batch_size: 1
+  sampling: sobol
+  acqf_num_restarts: 5
+  acqf_raw_samples: 64
+  acqf_mc_samples: 128
+  device: cpu
+  dtype: double
+  ref_point_margin: 0.1
+  seed: 43

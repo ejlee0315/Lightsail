@@ -1,0 +1,56 @@
+# Stage 1 — PhC reflector with a rectangular lattice.
+# Adds one extra optimization variable over the orthogonal families:
+#   lattice_aspect_ratio = period_y / period_x ∈ [0.5, 2.0]
+stage: 1
+name: stage1_rectangular
+material: SiN
+
+thickness_range_nm: [200, 1000]
+nir_band_nm: [1350, 1650]
+mir_band_nm: [8000, 14000]
+
+fabrication:
+  mode: mode_a
+  min_feature_nm: 100
+  min_gap_nm: 100
+  fill_fraction_range: [0.001, 0.999]
+
+solver:
+  kind: mock        # "mock" or "rcwa"
+  nG: 41
+  grid_nx: 96
+  grid_ny: 96
+  polarization: average
+
+geometry:
+  lattice_family: rectangular
+  n_rings: 6
+
+primary_objective: nir_reflectance
+
+objectives:
+  nir_reflectance:
+    band_nm: [1350, 1650]
+    n_points: 30
+    mean_weight: 0.7
+    min_weight: 0.3
+    weight: 1.0
+  mir_emissivity:
+    band_nm: [8000, 14000]
+    n_points: 30
+    weight: 1.0
+  fabrication_penalty:
+    weight: 0.3
+
+mobo:
+  n_init: 50            # 8-dim space: more init budget (~6×dim)
+  n_iterations: 80      # + extra BO iterations
+  batch_size: 1
+  sampling: sobol
+  acqf_num_restarts: 5
+  acqf_raw_samples: 64
+  acqf_mc_samples: 128
+  device: cpu
+  dtype: double
+  ref_point_margin: 0.1
+  seed: 42

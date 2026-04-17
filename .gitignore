@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.eggs/
+results/
+*.npy
+*.npz
+.venv/
+
+# macOS
+.DS_Store
+
+# Overnight orchestration artifacts (session-specific)
+overnight.log
+overnight_status.json
+nohup.out
+
+# Pytest
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
