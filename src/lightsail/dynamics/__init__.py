@@ -16,8 +16,10 @@ try:
     from lightsail.dynamics.force_lut import (
         CenterPhCLUT,
         RingLUT,
+        RingLUT2D,
         compute_center_lut,
         compute_ring_lut,
+        compute_ring_lut_2d,
     )
     from lightsail.dynamics.optical_integrator import (
         GaussianBeam,
@@ -44,8 +46,10 @@ try:
     __all__ = [
         "CenterPhCLUT",
         "RingLUT",
+        "RingLUT2D",
         "compute_center_lut",
         "compute_ring_lut",
+        "compute_ring_lut_2d",
         "SailGeometry",
         "GaussianBeam",
         "IntegrationConfig",

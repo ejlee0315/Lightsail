@@ -263,6 +263,123 @@ class RingLUT:
         return float(F_z), float(F_r)
 
 
+# ---------------------------------------------------------------------------
+# Phase 3: 2D ring LUT (azimuthal modulation support)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RingLUT2D:
+    """Ring force LUT with an additional duty-cycle axis.
+
+    Same convention as ``RingLUT`` but with a 3D storage (θ × duty × λ).
+    Used by the polar integrator when ``MetaGrating.mod_amp > 0`` to look
+    up F at the local ``duty_local(φ) = duty · (1 + mod_amp · cos(n·φ))``.
+    """
+
+    theta_grid_deg: np.ndarray
+    duty_grid: np.ndarray
+    wavelengths_nm: np.ndarray
+    F_radial_per_area_norm: np.ndarray   # (n_theta, n_duty, n_wl)
+    F_z_per_area_norm: np.ndarray
+
+    @property
+    def _Fz_mean(self) -> np.ndarray:
+        if not hasattr(self, "_Fz_mean_cache"):
+            object.__setattr__(self, "_Fz_mean_cache", self.F_z_per_area_norm.mean(axis=2))
+        return self._Fz_mean_cache  # shape (n_theta, n_duty)
+
+    @property
+    def _Fr_mean(self) -> np.ndarray:
+        if not hasattr(self, "_Fr_mean_cache"):
+            object.__setattr__(self, "_Fr_mean_cache", self.F_radial_per_area_norm.mean(axis=2))
+        return self._Fr_mean_cache
+
+    def force_per_area_vec_2d(
+        self,
+        theta_deg_arr: np.ndarray,
+        duty_arr: np.ndarray,
+        intensity_W_per_m2: float = 1.0,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Vectorized bilinear interpolation in (θ, duty) — hand-coded.
+
+        Numpy bilinear is ~10–50× faster than scipy RGI for the small
+        inner-loop arrays (≤100 points) typical in trajectory simulation.
+        """
+        theta_clip = np.clip(np.asarray(theta_deg_arr, dtype=float),
+                             self.theta_grid_deg[0], self.theta_grid_deg[-1])
+        duty_clip = np.clip(np.asarray(duty_arr, dtype=float),
+                            self.duty_grid[0], self.duty_grid[-1])
+
+        ti = np.searchsorted(self.theta_grid_deg, theta_clip).clip(1, len(self.theta_grid_deg) - 1)
+        di = np.searchsorted(self.duty_grid, duty_clip).clip(1, len(self.duty_grid) - 1)
+        t0 = self.theta_grid_deg[ti - 1]
+        t1 = self.theta_grid_deg[ti]
+        d0 = self.duty_grid[di - 1]
+        d1 = self.duty_grid[di]
+        wt = (theta_clip - t0) / (t1 - t0)
+        wd = (duty_clip - d0) / (d1 - d0)
+
+        Fz_grid = self._Fz_mean
+        Fr_grid = self._Fr_mean
+        Fz = (
+            (1.0 - wt) * (1.0 - wd) * Fz_grid[ti - 1, di - 1]
+            + wt * (1.0 - wd) * Fz_grid[ti, di - 1]
+            + (1.0 - wt) * wd * Fz_grid[ti - 1, di]
+            + wt * wd * Fz_grid[ti, di]
+        )
+        Fr = (
+            (1.0 - wt) * (1.0 - wd) * Fr_grid[ti - 1, di - 1]
+            + wt * (1.0 - wd) * Fr_grid[ti, di - 1]
+            + (1.0 - wt) * wd * Fr_grid[ti - 1, di]
+            + wt * wd * Fr_grid[ti, di]
+        )
+        return (
+            intensity_W_per_m2 / C_LIGHT * Fz,
+            intensity_W_per_m2 / C_LIGHT * Fr,
+        )
+
+
+def compute_ring_lut_2d(
+    grating_period_nm: float,
+    duty_grid: np.ndarray,
+    thickness_nm: float,
+    theta_grid_deg: np.ndarray,
+    wavelengths_nm: np.ndarray,
+    fmm_config: Optional[FMMGratingConfig] = None,
+    dispersion: Optional[SiNDispersion] = None,
+) -> RingLUT2D:
+    """Build (θ × duty × λ) LUT by repeated 1D-FMM calls."""
+    cfg = fmm_config or FMMGratingConfig(nG=21, nx=128, ny=4)
+    duty_arr = np.atleast_1d(np.asarray(duty_grid, dtype=float))
+    theta_arr = np.atleast_1d(np.asarray(theta_grid_deg, dtype=float))
+    wl_arr = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))
+
+    cz = np.zeros((theta_arr.size, duty_arr.size, wl_arr.size), dtype=float)
+    cr = np.zeros_like(cz)
+
+    for k_d, duty in enumerate(duty_arr):
+        single = compute_ring_lut(
+            grating_period_nm=grating_period_nm,
+            duty_cycle=float(duty),
+            thickness_nm=thickness_nm,
+            theta_grid_deg=theta_arr,
+            wavelengths_nm=wl_arr,
+            fmm_config=cfg,
+            dispersion=dispersion,
+        )
+        cz[:, k_d, :] = single.F_z_per_area_norm
+        cr[:, k_d, :] = single.F_radial_per_area_norm
+
+    return RingLUT2D(
+        theta_grid_deg=theta_arr,
+        duty_grid=duty_arr,
+        wavelengths_nm=wl_arr,
+        F_radial_per_area_norm=cr,
+        F_z_per_area_norm=cz,
+    )
+
+
 def compute_ring_lut(
     grating_period_nm: float,
     duty_cycle: float,

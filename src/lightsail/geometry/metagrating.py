@@ -49,6 +49,12 @@ class MetaGrating(ParametricGeometry):
     curvature: float = 0.0
     asymmetry: float = 0.0
     ring_width_um: float = 10.0
+    # Phase-3 azimuthal modulation:  duty_local(φ) = duty · (1 + mod_amp · cos(n_petals · φ))
+    # Breaks the SO(2) rotational symmetry of the concentric ring, enabling
+    # tilt-restoring torque (k_θθ > 0) on flat sails. n_petals = 0 or
+    # mod_amp = 0 reduces to the original axisymmetric ring.
+    mod_amp: float = 0.0
+    n_petals: int = 0
 
     # ------------------------------------------------------------------
     # ParametricGeometry interface
@@ -61,15 +67,19 @@ class MetaGrating(ParametricGeometry):
             "curvature",
             "asymmetry",
             "ring_width_um",
+            "mod_amp",
+            "n_petals",
         ]
 
     def param_bounds(self) -> list[tuple[float, float]]:
         return [
-            (1000.0, 3000.0),  # grating_period_nm (must fit min feature + min gap)
-            (0.2, 0.8),        # duty_cycle (both width and gap stay non-trivial)
-            (-0.2, 0.2),       # curvature (radial warping)
-            (-0.2, 0.2),       # asymmetry (angular 2nd-order)
-            (2.0, 50.0),       # ring_width_um (total radial extent)
+            (1000.0, 3000.0),  # grating_period_nm
+            (0.2, 0.8),        # duty_cycle
+            (-0.2, 0.2),       # curvature
+            (-0.2, 0.2),       # asymmetry
+            (2.0, 50.0),       # ring_width_um
+            (0.0, 0.5),        # mod_amp (0 = axisymmetric, 0.5 = strong)
+            (0.0, 6.0),        # n_petals (rounded to int, 0=none, 1=dipole, ...)
         ]
 
     def to_param_vector(self) -> np.ndarray:
@@ -80,19 +90,46 @@ class MetaGrating(ParametricGeometry):
                 self.curvature,
                 self.asymmetry,
                 self.ring_width_um,
+                self.mod_amp,
+                float(self.n_petals),
             ],
             dtype=float,
         )
 
     def from_param_vector(self, vector: np.ndarray) -> None:
         v = np.asarray(vector, dtype=float).ravel()
-        if v.size != 5:
-            raise ValueError(f"MetaGrating expects 5 params, got {v.size}")
+        if v.size == 5:
+            # Backwards-compatible: legacy 5-param vector.
+            self.grating_period_nm = float(v[0])
+            self.duty_cycle = float(np.clip(v[1], 0.0, 1.0))
+            self.curvature = float(v[2])
+            self.asymmetry = float(v[3])
+            self.ring_width_um = float(v[4])
+            return
+        if v.size != 7:
+            raise ValueError(f"MetaGrating expects 5 or 7 params, got {v.size}")
         self.grating_period_nm = float(v[0])
         self.duty_cycle = float(np.clip(v[1], 0.0, 1.0))
         self.curvature = float(v[2])
         self.asymmetry = float(v[3])
         self.ring_width_um = float(v[4])
+        self.mod_amp = float(np.clip(v[5], 0.0, 1.0))
+        self.n_petals = int(round(float(v[6])))
+
+    # ------------------------------------------------------------------
+    # Phase-3 azimuthal modulation
+    # ------------------------------------------------------------------
+
+    def local_duty_cycle(self, phi_rad: float | np.ndarray) -> np.ndarray:
+        """Effective duty cycle at azimuthal position φ (sail frame).
+
+        ``duty_local(φ) = duty · (1 + mod_amp · cos(n_petals · φ))`` clipped
+        to (0.05, 0.95) to keep the local 1D grating well-defined.
+        """
+        if self.mod_amp == 0.0 or self.n_petals == 0:
+            return np.full_like(np.asarray(phi_rad, dtype=float), self.duty_cycle)
+        modulation = 1.0 + self.mod_amp * np.cos(self.n_petals * np.asarray(phi_rad, dtype=float))
+        return np.clip(self.duty_cycle * modulation, 0.05, 0.95)
 
     # ------------------------------------------------------------------
     # Ring generation

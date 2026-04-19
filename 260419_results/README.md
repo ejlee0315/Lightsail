@@ -158,11 +158,57 @@ R_c = 30 m 곡률 = peripheral sag **3.75 cm** at R_sail = 1.5 m, edge slope
 - `scripts/collect_stage2_fmm_best.py` — multi-seed 결과 수집
 - `scripts/verify_damping_enhancement.py` — docx Eq.4.8 정량 검증
 
-## 다음 단계
+## Phase 3 — Azimuthal modulation BO (Option C, completed 2026-04-19)
 
-- **Phase 3** (선택, 2-3주): 2D engineered metasurface BO — TE/TM 비대칭
-  unit cell로 평면 sail에서도 PASS 가능한지 (Gieseler 2024 수준)
-- **Paper writing** (1-2주): 현재 결과만으로 충분히 1편 작성 가능
+평면 sail에서 PASS 가능한지 azimuthal modulation 추가 후 직접 trajectory
+PASS을 BO objective로 7-param 탐색 (40 trials).
+
+**Setup**:
+- MetaGrating에 `mod_amp` (0 → 0.5), `n_petals` (∈ {0, 2, 3, 4, 6}) 추가
+- 2D ring LUT (θ × duty × λ) 구현 — `compute_ring_lut_2d`, `RingLUT2D`
+- Polar integrator: 각 (r, φ)에서 `duty_local(φ) = duty·(1+ε·cos(n·φ))` 사용
+- Spin (Ω_z=120Hz) 시 sail-frame angle φ_sail = φ_lab − θ_z(t) 추적
+- BO: Sobol 30 + 10 refine, objective = max_tilt/10° + max_xy/1.8m
+
+**핵심 결과**:
+
+| 양 | 값 |
+|---|---|
+| Best obj | **0.434** (PASS) |
+| Best params | P=1287nm, duty=0.53, W=44.2µm, mod=0.07, n=4, R_c=31.7m |
+| Best max tilt | 3.95° |
+| Best max xy | 0.071 m |
+| PASS 갯수 | 9 / 40 trials |
+
+**모든 PASS의 공통점**:
+- R_c ∈ [18, 32] m (곡률 필수)
+- mod_amp ≤ 0.16 (modulation 미미함)
+- n_petals 0 또는 4 (강한 비대칭 비효과적)
+- Period 1200-1320 nm (Wood anomaly 근처)
+
+**Negative result (paper-defining)**:
+> Azimuthal modulation up to mod_amp = 0.5 with n_petals up to 6 does
+> NOT enable flat-sail (R_c = ∞) PASS within our 7-parameter design
+> space. Curvature (R_c ≲ 30 m) is essential for tilt restoring.
+
+→ **3-zone architecture의 curvature 항이 fundamental requirement**임을
+   BO로 정량 입증. Gieseler 2024는 매우 정교한 TE/TM 비대칭 unit cell로
+   flat PASS 달성했지만, 우리의 concentric+azimuthal modulation framework는
+   그 수준의 자유도를 갖지 못함.
+
+## Paper roadmap
+
+현재 결과로 충분한 paper 1편 작성 가능. 핵심 claim:
+
+1. **Center PhC**: T = 20.7 min (Norder 2025 대비 −16%) — Stage 1
+2. **Outer ring metagrating**: ∂C_pr,2/∂θ를 100×~2700× 증폭 (docx Eq.4.8)
+   — Stage 2 BO
+3. **Curvature R_c ≈ 30 m**: tilt restoring 메커니즘 (Salary 2019 lineage)
+4. **3-zone 통합**: paper-grade 5초 trajectory PASS (Gieseler 2024 protocol)
+5. **Negative results**: 그래핀/SiC/hBN underlayer 부적합, azimuthal
+   modulation alone 부족 — design space의 boundary 명확히
+6. **Fab feasibility**: Stoney 식으로 R_c=30m 곡률은 ~530 Pa stress,
+   LPCVD/PECVD 표준 공정 안
 
 ## 주요 참고문헌
 

@@ -41,7 +41,7 @@ from typing import Optional
 
 import numpy as np
 
-from lightsail.dynamics.force_lut import CenterPhCLUT, RingLUT
+from lightsail.dynamics.force_lut import CenterPhCLUT, RingLUT, RingLUT2D
 
 
 C_LIGHT = 299_792_458.0
@@ -143,8 +143,12 @@ def total_optical_force_torque(
     geometry: SailGeometry,
     beam: GaussianBeam,
     center_lut: CenterPhCLUT,
-    ring_lut: RingLUT,
+    ring_lut,                 # RingLUT or RingLUT2D
     config: Optional[IntegrationConfig] = None,
+    sail_yaw_rad: float = 0.0,
+    mod_amp: float = 0.0,
+    n_petals: int = 0,
+    base_duty: float = 0.5,
 ) -> OpticalForceTorque:
     """Polar (r, φ) integration of force/torque on a tilted sail in a Gaussian beam.
 
@@ -219,13 +223,29 @@ def total_optical_force_torque(
         tau_y_total += float(np.sum(-(r * cos_phi_all) * F_z_pts))
 
     # ------- Outer ring annulus (vectorized over φ; per-r LUT call) -------
+    use_2d_lut = isinstance(ring_lut, RingLUT2D)
+    if use_2d_lut:
+        # Sail-frame azimuthal angle φ_sail = φ_lab − yaw(t)
+        phi_sail = phi - sail_yaw_rad
+        if mod_amp > 0.0 and n_petals > 0:
+            duty_local_phi = base_duty * (
+                1.0 + mod_amp * np.cos(n_petals * phi_sail)
+            )
+            duty_local_phi = np.clip(duty_local_phi, 0.05, 0.95)
+        else:
+            duty_local_phi = np.full_like(phi, float(base_duty))
     for r in r_ring:
         alpha_r = geometry.curvature_tilt(r)
         sin_th_local_arr = sin_ty * cos_phi_all - sin_tx * sin_phi_all + alpha_r
         theta_local_deg_arr = np.rad2deg(np.arcsin(np.clip(sin_th_local_arr, -1.0, 1.0)))
-        Fz_per_area_phi, Fr_in_per_area_phi = ring_lut.force_per_area_vec(
-            theta_local_deg_arr, 1.0,
-        )
+        if use_2d_lut:
+            Fz_per_area_phi, Fr_in_per_area_phi = ring_lut.force_per_area_vec_2d(
+                theta_local_deg_arr, duty_local_phi, 1.0,
+            )
+        else:
+            Fz_per_area_phi, Fr_in_per_area_phi = ring_lut.force_per_area_vec(
+                theta_local_deg_arr, 1.0,
+            )
 
         x_lab = sail_x_m + r * cos_phi_all
         y_lab = sail_y_m + r * sin_phi_all

@@ -124,15 +124,23 @@ def make_force_torque_callable(
     geometry: SailGeometry,
     beam: GaussianBeam,
     center_lut: CenterPhCLUT,
-    ring_lut: RingLUT,
+    ring_lut,                                    # RingLUT or RingLUT2D
     config: Optional[IntegrationConfig] = None,
+    mod_amp: float = 0.0,
+    n_petals: int = 0,
+    base_duty: float = 0.5,
 ) -> Callable[[float, np.ndarray], np.ndarray]:
-    """Return f(t, state) → (F_x, F_y, F_z, τ_x, τ_y, τ_z) Lab frame, for the EoM."""
+    """Return f(t, state) → (F_x, F_y, F_z, τ_x, τ_y, τ_z) Lab frame, for the EoM.
+
+    With ``mod_amp > 0`` and ``n_petals > 0`` (and a ``RingLUT2D``), the
+    integrator uses azimuthal-modulated ring with sail-frame angle
+    φ_sail = φ_lab − θ_z(t), where θ_z is the current spin angle.
+    """
     cfg = config or IntegrationConfig()
 
     def force_torque(t: float, state: np.ndarray) -> np.ndarray:
         x, y, _z = state[0], state[1], state[2]
-        theta_x, theta_y, _theta_z = state[6], state[7], state[8]
+        theta_x, theta_y, theta_z = state[6], state[7], state[8]
         out = total_optical_force_torque(
             sail_x_m=float(x),
             sail_y_m=float(y),
@@ -143,6 +151,10 @@ def make_force_torque_callable(
             center_lut=center_lut,
             ring_lut=ring_lut,
             config=cfg,
+            sail_yaw_rad=float(theta_z),
+            mod_amp=mod_amp,
+            n_petals=n_petals,
+            base_duty=base_duty,
         )
         return np.array([
             out.F_x_N, out.F_y_N, out.F_z_N,
@@ -191,12 +203,15 @@ def run_trajectory(
     beam: GaussianBeam,
     mass: SailMass,
     center_lut: CenterPhCLUT,
-    ring_lut: RingLUT,
+    ring_lut,                                # RingLUT or RingLUT2D
     integration_config: Optional[IntegrationConfig] = None,
     t_end_s: float = 5.0,
     n_eval: int = 200,
     rtol: float = 1e-6,
     atol: float = 1e-9,
+    mod_amp: float = 0.0,
+    n_petals: int = 0,
+    base_duty: float = 0.5,
 ) -> TrajectoryResult:
     """Integrate 6-DOF rigid body EoM over [0, t_end] with given perturbation."""
     s0 = np.zeros(12, dtype=float)
@@ -206,6 +221,7 @@ def run_trajectory(
 
     force_torque_fn = make_force_torque_callable(
         geometry, beam, center_lut, ring_lut, integration_config,
+        mod_amp=mod_amp, n_petals=n_petals, base_duty=base_duty,
     )
     rhs = build_rhs(mass, force_torque_fn)
     t_eval = np.linspace(0.0, t_end_s, n_eval)
