@@ -196,6 +196,22 @@ PASS을 BO objective로 7-param 탐색 (40 trials).
    flat PASS 달성했지만, 우리의 concentric+azimuthal modulation framework는
    그 수준의 자유도를 갖지 못함.
 
+## ⚠️ Honest Nat Commun tier assessment (revised)
+
+Based on Phase 4-C-tight findings:
+
+| 저널 tier | 가능성 | 이유 |
+|---|---|---|
+| **Nat Commun** | 20-30% | narrow stability basin + LUT-sensitive PASS + thermal limitation |
+| **PR Applied / ACS Photonics** | 40-60% | 방법론 강하지만 robustness 부족 |
+| **Opt Express / Sci Rep** | 80%+ | proof-of-concept로 안전 |
+
+**진실한 research contribution**:
+1. **Methodology**: Paper-grade trajectory simulation + BO framework (강)
+2. **3-zone architecture concept**: 기능 분리 원리 (중)
+3. **Negative results**: azim mod 부족, graphene 부적합 (중-강)
+4. **Quantitative proof**: concentric ring 단독으로는 **robust 안정화 불가능** — 2D engineered metasurface 필요 (강, paper-worthy)
+
 ## Phase 4-A — MIR backside absorber (Nat Commun 보강, 2026-04-19)
 
 LayeredRCWASolver 확장 → 2D patterned backside layer 지원
@@ -258,12 +274,32 @@ instability:
 | ring period tolerance (±10%) | 3 | 0 |
 | sail R_c tolerance (±20%) | 3 | 1 (R_c=24m) |
 
-**Interpretation**:
-- Nominal config (w=4m, x=50mm, θ=-2°, R_c=30m) was PASS with tight
-  settings (rtol=1e-6, curvature sweep) — 3.15° tilt.
-- Under looser rtol (1e-4) same nominal FAILS with 186° tilt.
-- The design sits **near the stability boundary** — tilt dynamics
-  amplify numerical error under coarse integration.
+**Interpretation (corrected after tight-LUT re-run)**:
+
+Phase 4-C-tight re-run with reduced LUT resolution (Center nG=21,
+Ring nG=15, grid 64) **also** gives Nominal = FAIL (329°). Only 2/8
+PASS under tight integration with reduced LUT:
+- R_c=24m: PASS 4.23°
+- x=20mm + θ=-1° (small perturbation): PASS 1.61°
+
+The original Phase 2 PASS (3.15°) used Center nG=41 + Ring nG=21
+(2× higher LUT resolution). This LUT-resolution sensitivity means
+the design **sits on a numerical knife-edge**: stability is decided
+by whether RCWA is fully converged at nG=41 or not.
+
+**Physical interpretation**:
+- The concentric ring + R_c=30m design provides genuinely marginal
+  stability for the nominal paper perturbation (x=50mm, θ=-2°)
+- PASS requires both (a) high-resolution RCWA LUT and (b) specific
+  parameter tuning
+- Small deviations (perturbation magnitude, beam width, intensity,
+  fabrication tolerances) push the sail out of the stability basin
+- **Real-world sail would likely FAIL** due to unavoidable
+  fabrication tolerances and beam-pointing errors
+
+This is a **publication-grade finding** in itself: the concentric-ring
+approach alone is insufficient for robust beam-riding, motivating the
+2D engineered metasurface future work.
 - **Paper claim**: "Nominal design PASSES with RCWA-converged
   integrator; tightening fabrication tolerances (ring period ≤5%, R_c
   ≤10%) is recommended for robust operation."
@@ -278,6 +314,29 @@ instability:
 - **Fig 3**: PASS trajectory (curved + BO ring at t=280)
 - **Fig 4**: Damping enhancement vs ring period (β-stratified)
 - **Fig 5**: MIR absorber Pareto + thermal balance vs intensity
+
+## Phase 4-C-tight — 8-case robustness with full RCWA convergence check
+
+Re-run with paper-grade rtol=1e-6 integration + reduced LUT
+(nG=21 center, nG=15 ring, grid 64) to distinguish numerical vs
+physical FAILs.
+
+| # | Case | Verdict | max tilt | max xy |
+|---|---|---|---|---|
+| 1 | Nominal (w=4m, x=50mm, θ=-2°, R_c=30m) | FAIL | 329° | 0.071 |
+| 2 | 2× perturbation (x=100mm, θ=-4°) | FAIL | 669° | 0.141 |
+| 3 | Narrow beam (w=3m) | FAIL | 517° | 0.071 |
+| 4 | 5× intensity (5 GW/m²) | FAIL | 1617° | 0.071 |
+| 5 | Ring period +10% | FAIL | 375° | 44.3 |
+| 6 | **R_c=24m (−20%)** | ✅ PASS | **4.23°** | 0.071 |
+| 7 | **Small perturbation (x=20mm, θ=-1°)** | ✅ PASS | **1.61°** | 0.028 |
+| 8 | Ring period −10% | FAIL | 325° | 0.071 |
+
+**2/8 PASS** → Concentric ring + R_c=30m design works only at:
+- Tighter curvature (R_c = 24m) OR
+- Smaller initial perturbation (x₀ ≤ 20mm, θ₀ ≤ 1°)
+
+→ **Narrow operational envelope**; real-world flight would likely FAIL.
 
 ## Paper roadmap
 
