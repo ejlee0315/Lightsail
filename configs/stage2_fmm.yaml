@@ -1,0 +1,67 @@
+# Stage 2 with full-wave FMM stabilization proxy (P5).
+#
+# Replaces the analytic AsymmetryStabilizationProxy with the radial-bin
+# 1D-FMM proxy implemented in P1.1. Designed to be paired with the
+# Design A frozen PhC (CLAUDE.md, 2026-04-17): t=280, P=1580, hole 600 nm.
+#
+# Use with: scripts/run_stage2_fmm.py --config configs/stage2_fmm.yaml \
+#               --seed <SEED> --n-iter 100
+stage: 2
+name: stage2_fmm
+material: SiN
+
+thickness_range_nm: [200, 500]
+nir_band_nm: [1550, 1898]              # Doppler band 1550 → β=0.20
+mir_band_nm: [8000, 14000]
+
+fabrication:
+  mode: mode_a
+  min_feature_nm: 100
+  min_gap_nm: 100
+  fill_fraction_range: [0.001, 0.999]
+
+# Frozen Design A PhC (Stage 1 best, T=20.73 min)
+frozen_phc:
+  lattice_family: triangular
+  n_rings: 6
+  thickness_nm: 280
+  lattice_period_nm: 1580
+  hole_a_nm: 600
+  hole_b_nm: 600
+  hole_rotation_deg: 0
+  corner_rounding: 1.0
+  shape_parameter: 8
+
+primary_objective: stabilization
+
+objectives:
+  nir_reflectance:
+    band_nm: [1550, 1898]
+    n_points: 11
+    mean_weight: 1.0
+    min_weight: 0.0
+    weight: 0.4
+  stabilization:
+    mode: fmm                          # NEW: full-wave FMM proxy
+    nir_band_nm: [1550, 1898]
+    nir_n_points: 5
+    n_radial_bins: 3
+    nG: 21
+    dtheta_deg: 1.0
+    stiffness_scale: 0.5
+    weight: 1.0
+  fabrication_penalty:
+    weight: 0.5
+
+mobo:
+  n_init: 12
+  n_iterations: 80
+  batch_size: 1
+  sampling: sobol
+  acqf_num_restarts: 5
+  acqf_raw_samples: 64
+  acqf_mc_samples: 128
+  device: cpu
+  dtype: double
+  ref_point_margin: 0.1
+  seed: 42                             # overridden via --seed

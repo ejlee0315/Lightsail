@@ -22,6 +22,12 @@ from lightsail.optimization.objectives import (
 from lightsail.optimization.optimizer import BayesianOptimizer
 from lightsail.optimization.search_space import SearchSpace
 
+try:
+    from lightsail.optimization.fmm_proxy import LocalPeriodFMMProxy
+    _HAS_FMM_PROXY = True
+except ImportError:  # grcwa optional (StabilizationProxy doesn't require it)
+    _HAS_FMM_PROXY = False
+
 __all__ = [
     # search / optimizer
     "SearchSpace",
@@ -40,6 +46,7 @@ __all__ = [
     "AsymmetryStabilizationProxy",
     "RadialMomentumProxy",
     "StabilizationProxyObjective",
+    *( ("LocalPeriodFMMProxy",) if _HAS_FMM_PROXY else () ),
     "make_stage1_objectives",
     "make_stage2_objectives",
     # evaluator

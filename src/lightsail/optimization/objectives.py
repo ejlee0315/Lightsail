@@ -563,6 +563,10 @@ class StabilizationProxyObjective(Objective):
                 proxy = AsymmetryStabilizationProxy(nir_band_nm=nir_band_nm)
             elif mode == "radial_momentum":
                 proxy = RadialMomentumProxy(nir_band_nm=nir_band_nm)
+            elif mode == "fmm":
+                # Lazy import to avoid hard grcwa dep at module load.
+                from lightsail.optimization.fmm_proxy import LocalPeriodFMMProxy
+                proxy = LocalPeriodFMMProxy(nir_band_nm=nir_band_nm)
             else:
                 raise ValueError(f"Unknown stabilization mode: {mode}")
         self.proxy = proxy

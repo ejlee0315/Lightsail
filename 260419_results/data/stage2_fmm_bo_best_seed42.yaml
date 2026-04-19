@@ -1,0 +1,16 @@
+trial_id: 53
+iteration: 53
+source: bo
+feasible: true
+constraint_penalty: 0.0
+objectives:
+  nir_reflectance: 0.054985332901023705
+  mir_emissivity: 0.30732967309448095
+  stabilization: 0.03339252353631511
+  fabrication_penalty: 0.0
+params:
+  grating_period_nm: 1424.248824955288
+  duty_cycle: 0.4665088995435074
+  curvature: 0.2
+  asymmetry: 0.2
+  ring_width_um: 2.0

@@ -165,14 +165,19 @@ class RCWASolver(ElectromagneticSolver):
         r_sum = 0.0
         t_sum = 0.0
 
+        # grcwa expects theta/phi in radians (latent bug in early versions
+        # of this file: theta_deg was passed directly; harmless at theta=0).
+        theta_rad = float(np.deg2rad(self.config.theta_deg))
+        phi_rad = float(np.deg2rad(self.config.phi_deg))
+
         for p_amp, s_amp in polarization_calls:
             sim = grcwa.obj(
                 self.config.nG if not uniform else 3,
                 L1,
                 L2,
                 freq,
-                self.config.theta_deg,
-                self.config.phi_deg,
+                theta_rad,
+                phi_rad,
                 verbose=0,
             )
             sim.Add_LayerUniform(0.0, complex(self.n_superstrate) ** 2)
