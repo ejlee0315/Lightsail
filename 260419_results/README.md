@@ -232,6 +232,26 @@ T_steady 계산 (`T = (α·I/(2σε))^¼`):
 - 현재 ε_MIR=0.164는 SiC/hBN phonon polariton 한계, 8-10µm cover 위해 다른
   메커니즘 필요 (doped Si free-carrier, MIM cavity 등)
 
+## Phase 4-B — 1D-FMM proxy paper-grade validation
+
+| 검증 | C_pr,1 (θ=3°) | 결론 |
+|---|---|---|
+| nG = 11, 21, 41, 81 | 5.2336e-02 (모두 동일) | RCWA-converged at nG=21 |
+| perp_period = 0.25, 0.5, 1, 2 µm | 5.2336e-02 (동일) | 1D-radial 가정 정당 |
+| R + T = 1.0000 | (모든 case) | 에너지 보존 ✓ |
+
+→ Reviewer-defensible: "1D-FMM proxy is RCWA-converged at nG=21; the
+1D-radial approximation is independent of perpendicular period."
+
+## Phase 4-D — Paper-ready figures (Nat Commun submission)
+
+`plots/Fig{1..5}_*.png` (300 DPI):
+- **Fig 1**: 3-zone architecture schematic + performance table
+- **Fig 2**: Stability ablation matrix (5×3 curvature × ring)
+- **Fig 3**: PASS trajectory (curved + BO ring at t=280)
+- **Fig 4**: Damping enhancement vs ring period (β-stratified)
+- **Fig 5**: MIR absorber Pareto + thermal balance vs intensity
+
 ## Paper roadmap
 
 현재 결과로 충분한 paper 1편 작성 가능. 핵심 claim:
