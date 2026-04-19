@@ -4,7 +4,11 @@ from lightsail.simulation.results import SimulationResult
 
 try:
     from lightsail.simulation.rcwa_solver import RCWAConfig, RCWASolver
-    from lightsail.simulation.layered_rcwa import LayeredRCWASolver, LayerSpec
+    from lightsail.simulation.layered_rcwa import (
+        LayeredRCWASolver,
+        LayerSpec,
+        PatternedLayerSpec,
+    )
     from lightsail.simulation.grating_fmm import (
         FMMGratingConfig,
         GratingOrderResult,
@@ -31,6 +35,7 @@ try:
         "RCWAConfig",
         "LayeredRCWASolver",
         "LayerSpec",
+        "PatternedLayerSpec",
         "FMMGratingConfig",
         "GratingOrderResult",
         "aggregate_metagrating_response",

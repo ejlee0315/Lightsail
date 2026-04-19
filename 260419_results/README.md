@@ -196,6 +196,42 @@ PASS을 BO objective로 7-param 탐색 (40 trials).
    flat PASS 달성했지만, 우리의 concentric+azimuthal modulation framework는
    그 수준의 자유도를 갖지 못함.
 
+## Phase 4-A — MIR backside absorber (Nat Commun 보강, 2026-04-19)
+
+LayeredRCWASolver 확장 → 2D patterned backside layer 지원
+(`PatternedLayerSpec`). SiC + hBN multi-material 패치로 MIR ε 개선.
+
+**A2 single-material scan (24 configs)**:
+- 최고: SiC patch 50% × 400nm → ε_MIR_avg = 0.152, peak 0.44 @ 12µm
+- baseline (bare PhC) 대비 +44%
+
+**A3 multi-material (SiC + hBN)**:
+- 최고: SiC 50%/400nm + hBN 70%/200nm → **ε_MIR_avg = 0.164** (+50%)
+- 8-10 µm 영역은 SiC/hBN phonon 없어 cover 못함 (limitation)
+
+**A4 thermal balance** (Design A center + best A3 absorber):
+| 양 | 값 |
+|---|---|
+| α_NIR (RCWA) | **0.0002** (essentially lossless) |
+| ε_MIR_avg | 0.164 |
+| extra mass | +0.53 g/m² (10 m² → +5.3 g, 총 10.3 g) |
+
+T_steady 계산 (`T = (α·I/(2σε))^¼`):
+
+| I [GW/m²] | T_steady [K] | 판정 |
+|---:|---:|---|
+| 0.1 | 1068 | OK (SiN safe) |
+| 0.5 | 1597 | TIGHT |
+| **1.0 (Gieseler 2024 등가)** | **1900** | **TIGHT (margin to SiN melt 2173 K)** |
+| 5.0 | 2840 | FAIL |
+| 10.0 (Starshot) | 3378 | FAIL |
+
+**결론**:
+- Gieseler 2024 검증 intensity (1 GW/m²)에서 **thermal survival**
+- Starshot 10 GW/m²는 broadband multi-resonance absorber 필요 → future work
+- 현재 ε_MIR=0.164는 SiC/hBN phonon polariton 한계, 8-10µm cover 위해 다른
+  메커니즘 필요 (doped Si free-carrier, MIM cavity 등)
+
 ## Paper roadmap
 
 현재 결과로 충분한 paper 1편 작성 가능. 핵심 claim:
